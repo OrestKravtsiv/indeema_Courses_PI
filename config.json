@@ -1,0 +1,6 @@
+{
+    "uart": {
+        "port": "/dev/ttyUSB0",
+        "baudRate": 115200
+    }
+}
