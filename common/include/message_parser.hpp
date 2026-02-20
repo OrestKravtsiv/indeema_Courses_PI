@@ -1,6 +1,3 @@
-#ifndef MESSAGE_PARSER_HPP
-#define MESSAGE_PARSER_HPP
-
 #include <string>
 #include <vector>
 #include <json/json.h>
@@ -30,5 +27,3 @@ private:
     // Try to parse a JSON string
     bool tryParseJSON(const std::string& jsonStr, Json::Value& root);
 };
-
-#endif // MESSAGE_PARSER_HPP

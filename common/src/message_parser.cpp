@@ -1,33 +1,35 @@
 #include "message_parser.hpp"
-#include <iostream>
 
-MessageParser::MessageParser() : buffer("") {
-}
+MessageParser::MessageParser() : buffer("") {}
 
 void MessageParser::addData(const std::vector<uint8_t>& data) {
-    buffer.append(data.begin(), data.end());
+    // Convert raw bytes to string and append to buffer
+    for (uint8_t byte : data) {
+        buffer += static_cast<char>(byte);
+    }
 }
 
 bool MessageParser::parseNextMessage(Json::Value& message) {
+    // Find a complete JSON message in the buffer
     size_t messageEnd = findCompleteMessage();
     
     if (messageEnd == std::string::npos) {
-        return false;  // No complete message yet
+        return false; // No complete message found
     }
     
-    // Extract the message
-    std::string jsonStr = buffer.substr(0, messageEnd + 1);
+    // Extract the JSON string
+    std::string jsonStr = buffer.substr(0, messageEnd);
     
-    // Parse it
-    if (!tryParseJSON(jsonStr, message)) {
-        // If parsing fails, remove the malformed message and try next
-        buffer.erase(0, messageEnd + 1);
-        return false;
+    // Try to parse it
+    if (tryParseJSON(jsonStr, message)) {
+        // Remove the parsed message from buffer
+        buffer.erase(0, messageEnd);
+        return true;
     }
     
-    // Remove the processed message from buffer
-    buffer.erase(0, messageEnd + 1);
-    return true;
+    // If parsing failed, remove the bad data
+    buffer.erase(0, messageEnd);
+    return false;
 }
 
 std::string MessageParser::getBufferContent() const {
@@ -43,9 +45,10 @@ size_t MessageParser::findCompleteMessage() {
     bool inString = false;
     bool escapeNext = false;
     
-    for (size_t i = 0; i < buffer.length(); ++i) {
+    for (size_t i = 0; i < buffer.size(); ++i) {
         char c = buffer[i];
         
+        // Handle escape sequences in strings
         if (escapeNext) {
             escapeNext = false;
             continue;
@@ -56,40 +59,34 @@ size_t MessageParser::findCompleteMessage() {
             continue;
         }
         
-        if (c == '"' && !escapeNext) {
+        // Track if we're inside a string
+        if (c == '"') {
             inString = !inString;
             continue;
         }
         
+        // Only count braces outside of strings
         if (!inString) {
             if (c == '{') {
                 braceCount++;
             } else if (c == '}') {
                 braceCount--;
-                if (braceCount == 0 && i > 0) {
-                    return i;  // Found a complete JSON object
+                
+                // Found a complete JSON object
+                if (braceCount == 0) {
+                    return i + 1;
                 }
             }
         }
     }
     
-    return std::string::npos;
+    return std::string::npos; // No complete message
 }
 
 bool MessageParser::tryParseJSON(const std::string& jsonStr, Json::Value& root) {
-    try {
-        Json::CharReaderBuilder reader;
-        std::string errs;
-        
-        std::istringstream stream(jsonStr);
-        if (!Json::parseFromStream(reader, stream, &root, &errs)) {
-            std::cerr << "JSON parse error: " << errs << std::endl;
-            return false;
-        }
-        
-        return true;
-    } catch (const std::exception& e) {
-        std::cerr << "Exception during JSON parsing: " << e.what() << std::endl;
-        return false;
-    }
+    Json::CharReaderBuilder builder;
+    std::string errs;
+    
+    std::istringstream stream(jsonStr);
+    return Json::parseFromStream(builder, stream, &root, &errs);
 }

@@ -3,10 +3,9 @@ pkg_check_modules(SERIAL REQUIRED libserial)
 
 add_library(common STATIC
 src/logger.cpp
-src/config_manager.cpp
-src/serial_port.cpp
+src/ConfigManager.cpp
 src/message_parser.cpp
-src/esp32_handler.cpp
+src/serial_port.cpp
 )
 
 target_include_directories(common

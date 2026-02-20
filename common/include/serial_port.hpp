@@ -3,30 +3,30 @@
 
 #include <string>
 #include <vector>
-#include <memory>
+#include <libserial/SerialPort.h>
 
 class SerialPort {
 public:
-    SerialPort(const std::string& port, int baudRate);
+    SerialPort();
     ~SerialPort();
     
-    bool open();
+    // Open the serial port with specified path and baud rate
+    bool open(const std::string& portPath, int baudRate);
+    
+    // Close the serial port
     void close();
+    
+    // Check if port is open
     bool isOpen() const;
     
-    std::vector<uint8_t> read(size_t maxBytes = 1024);
-    bool write(const std::vector<uint8_t>& data);
-    bool write(const std::string& data);
+    // Read available data (non-blocking)
+    std::vector<uint8_t> readData();
     
-    const std::string& getPort() const { return port; }
-    int getBaudRate() const { return baudRate; }
-
+    // Write data to the port
+    bool writeData(const std::vector<uint8_t>& data);
+    
 private:
-    std::string port;
-    int baudRate;
-    void* serialHandle;  // Platform-specific handle (opaque pointer)
-    
-    bool openImpl();
+    LibSerial::SerialPort* serialPort;
 };
 
 #endif // SERIAL_PORT_HPP
