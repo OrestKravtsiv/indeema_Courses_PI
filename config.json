@@ -1,0 +1,6 @@
+{
+    "uart" : {
+        "path": "/dev/ttyACM0",
+        "baud_rate": 115200
+    }
+}
