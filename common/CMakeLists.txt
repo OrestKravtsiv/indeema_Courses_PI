@@ -6,6 +6,7 @@ src/logger.cpp
 src/ConfigManager.cpp
 src/message_parser.cpp
 src/serial_port.cpp
+# Note: thread_manager.cpp removed - template implementations are now in the header
 )
 
 target_include_directories(common
