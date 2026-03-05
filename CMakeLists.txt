@@ -4,6 +4,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 find_package(PkgConfig REQUIRED)
 find_package(jsoncpp REQUIRED)
+find_package(PahoMqttCpp REQUIRED)
 pkg_check_modules(SERIAL REQUIRED libserial)
 
 add_subdirectory(common)

@@ -1,6 +1,14 @@
 {
-    "uart" : {
+    "uart": {
         "path": "/dev/ttyUSB0",
         "baud_rate": 115200
+    },
+    "mqtt": {
+        "broker_address": "tcp://localhost:1883",
+        "client_id": "RaspberryPi_LED_Controller",
+        "topic_command": "studio/led/cmd",
+        "topic_status": "studio/led/status",
+        "keep_alive_interval": 20,
+        "timeout": 10000
     }
 }
