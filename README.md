@@ -1,6 +1,6 @@
 # ESP32 LED Control - IoT Lab Project
 
-This project implements a comprehensive **Raspberry Pi 4** host controller for **ESP32** LED control using both **MQTT** and **UART** communication protocols.
+This project implements a **Raspberry Pi 4** host controller for **ESP32** LED control using **MQTT** only.
 
 ## 📚 Documentation
 
@@ -14,7 +14,7 @@ This project implements a comprehensive **Raspberry Pi 4** host controller for *
 ```bash
 sudo apt-get update
 sudo apt-get install -y cmake build-essential libjsoncpp-dev \
-    libserial-dev libpaho-mqtt-dev libpaho-mqttpp-dev mosquitto mosquitto-clients
+  libpaho-mqtt-dev libpaho-mqttpp-dev mosquitto mosquitto-clients
 ```
 
 ### 2. Build
@@ -23,7 +23,7 @@ sudo apt-get install -y cmake build-essential libjsoncpp-dev \
 ```
 
 ### 3. Configure
-Edit `config.json` with your MQTT broker IP and serial port settings.
+Edit `config.json` with your MQTT broker settings.
 
 ### 4. Run
 ```bash
@@ -32,7 +32,7 @@ Edit `config.json` with your MQTT broker IP and serial port settings.
 
 ## ✨ Features
 
-- ✅ **Dual Communication**: MQTT and UART support
+- ✅ **MQTT Communication**: MQTT-only control and telemetry
 - ✅ **Asynchronous Architecture**: Non-blocking MQTT with background threads
 - ✅ **Automatic Reconnection**: Network resilience built-in
 - ✅ **JSON Protocol**: Standardized message format
@@ -45,7 +45,6 @@ Edit `config.json` with your MQTT broker IP and serial port settings.
 - [x] **Phase A**: MQTT connection and subscription
 - [x] **Phase B**: LED RGB control with JSON commands
 - [x] **Phase C**: Status feedback loop with parsing
-- [x] **Phase D**: UART communication channel
 - [x] **Robustness**: JSON validation, type checking, auto-reconnection
 
 ## 📋 JSON Message Format
@@ -79,7 +78,6 @@ Edit `config.json` with your MQTT broker IP and serial port settings.
 └── common/                     # Common library
     ├── include/
     │   ├── mqtt_client.hpp     # MQTT wrapper
-    │   ├── serial_port.hpp     # UART wrapper
     │   ├── ConfigManager.hpp   # Config parser
     │   ├── message_parser.hpp  # JSON parser
     │   ├── logger.hpp          # Logging utility
@@ -109,7 +107,6 @@ Edit `config.json` with your MQTT broker IP and serial port settings.
 See [QUICK_REFERENCE.md](QUICK_REFERENCE.md) for common issues and solutions.
 
 **Common Issues:**
-- UART permission: `sudo usermod -a -G dialout $USER` (then logout/login)
 - MQTT broker: `sudo systemctl start mosquitto`
 - Libraries: See dependency installation above
 
@@ -123,7 +120,6 @@ Built with:
 - C++20
 - Paho MQTT C++ (Asynchronous API)
 - JsonCpp
-- LibSerial
 - CMake
 
 ## 📝 License

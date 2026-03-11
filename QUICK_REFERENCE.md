@@ -42,37 +42,6 @@ mosquitto_pub -h localhost -t "studio/led/status" \
   -m '{"device_id":"ESP32_LED_001","state":"ON","uptime":100,"rgb":[255,0,0],"timestamp":1234567890}'
 ```
 
-### UART Testing
-
-**Check available serial ports:**
-```bash
-ls -l /dev/tty{USB,ACM}*
-dmesg | grep tty
-```
-
-**Add user to dialout group (run once):**
-```bash
-sudo usermod -a -G dialout $USER
-# Then logout and login again
-```
-
-**Monitor serial port:**
-```bash
-# Using screen
-screen /dev/ttyUSB0 115200
-
-# Using minicom
-minicom -D /dev/ttyUSB0 -b 115200
-
-# Using cat (simple monitoring)
-cat /dev/ttyUSB0
-```
-
-**Send test data to serial port:**
-```bash
-echo '{"command":"SET_COLOR","rgb":[0,255,0]}' > /dev/ttyUSB0
-```
-
 ## Configuration Quick Tips
 
 ### Change MQTT Broker
@@ -81,15 +50,6 @@ Edit `config.json`:
 "mqtt": {
   "broker_address": "tcp://192.168.1.100:1883",
   ...
-}
-```
-
-### Change Serial Port
-Edit `config.json`:
-```json
-"uart": {
-  "path": "/dev/ttyACM0",
-  "baud_rate": 115200
 }
 ```
 
@@ -120,13 +80,6 @@ Edit `config.json`:
 | Pink         | 255 | 192 | 203 |
 
 ## Troubleshooting Quick Fixes
-
-### "Permission denied" on serial port
-```bash
-sudo chmod 666 /dev/ttyUSB0
-# Or add to dialout group (permanent)
-sudo usermod -a -G dialout $USER
-```
 
 ### "MQTT connection refused"
 ```bash
@@ -284,7 +237,6 @@ sudo apt-get install -y \
     cmake \
     build-essential \
     libjsoncpp-dev \
-    libserial-dev \
     libpaho-mqtt-dev \
     libpaho-mqttpp-dev \
     mosquitto \

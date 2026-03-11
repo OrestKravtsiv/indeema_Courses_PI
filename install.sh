@@ -76,17 +76,6 @@ else
     exit 1
 fi
 
-# Install LibSerial
-print_info "Installing LibSerial library..."
-sudo apt-get install -y libserial-dev
-
-if pkg-config --exists libserial; then
-    print_success "LibSerial installed"
-else
-    print_error "Failed to install LibSerial"
-    exit 1
-fi
-
 # Install Paho MQTT
 print_info "Installing Paho MQTT C++ library..."
 sudo apt-get install -y libpaho-mqtt-dev libpaho-mqttpp-dev
@@ -143,17 +132,6 @@ else
     print_info "Skipping Mosquitto installation"
 fi
 
-# Configure user permissions for serial port
-print_info "Configuring serial port permissions..."
-if groups $USER | grep -q '\bdialout\b'; then
-    print_info "User already in dialout group"
-else
-    print_info "Adding user to dialout group..."
-    sudo usermod -a -G dialout $USER
-    print_success "User added to dialout group"
-    print_warning "You need to logout and login again for this to take effect"
-fi
-
 # Update library cache
 print_info "Updating library cache..."
 sudo ldconfig
@@ -183,15 +161,6 @@ else
     VERIFICATION_FAILED=1
 fi
 
-# Check LibSerial
-if pkg-config --exists libserial; then
-    LIBSERIAL_VERSION=$(pkg-config --modversion libserial)
-    print_success "LibSerial: version $LIBSERIAL_VERSION"
-else
-    print_error "LibSerial not found"
-    VERIFICATION_FAILED=1
-fi
-
 # Check Paho MQTT
 if ldconfig -p | grep -q "libpaho-mqttpp3"; then
     print_success "Paho MQTT C++: installed"
@@ -217,7 +186,6 @@ if [ $VERIFICATION_FAILED -eq 0 ]; then
     echo "  2. Run: ./build.sh"
     echo "  3. Run: ./build/coreapp"
     echo ""
-    print_warning "If you were added to the dialout group, logout and login for changes to take effect"
 else
     print_error "Some dependencies failed to install"
     echo "Please check the errors above and install missing packages manually"

@@ -1,30 +1,5 @@
 #include "ConfigManager.hpp"
 
-bool ConfigManager::parseConfig(const std::string& filePath, UARTConfig& config) {
-        Json::Value root;
-        Json::CharReaderBuilder builder;
-        std::string errs;
-
-        std::ifstream configFile(filePath);
-        if (!configFile.is_open()) {
-            return false;
-        }
-        if (!Json::parseFromStream(builder, configFile, &root, &errs)) {
-            return false;
-        }
-
-        // Extract UART configuration
-        if (root.isMember("uart")) {
-            const Json::Value& uart = root["uart"];
-            if (uart.isMember("path") && uart.isMember("baud_rate")) {
-                config.port = uart["path"].asString();
-                config.baudRate = uart["baud_rate"].asInt();
-                return true;
-            }
-        }
-        return false;
-    }
-
 bool ConfigManager::parseFullConfig(const std::string& filePath, AppConfig& config) {
     Json::Value root;
     Json::CharReaderBuilder builder;
@@ -35,19 +10,6 @@ bool ConfigManager::parseFullConfig(const std::string& filePath, AppConfig& conf
         return false;
     }
     if (!Json::parseFromStream(builder, configFile, &root, &errs)) {
-        return false;
-    }
-
-    // Extract UART configuration
-    if (root.isMember("uart")) {
-        const Json::Value& uart = root["uart"];
-        if (uart.isMember("path") && uart.isMember("baud_rate")) {
-            config.uart.port = uart["path"].asString();
-            config.uart.baudRate = uart["baud_rate"].asInt();
-        } else {
-            return false;
-        }
-    } else {
         return false;
     }
 

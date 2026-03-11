@@ -58,10 +58,6 @@ if ! pkg-config --exists jsoncpp; then
     MISSING_DEPS+=("libjsoncpp-dev")
 fi
 
-if ! pkg-config --exists libserial; then
-    MISSING_DEPS+=("libserial-dev")
-fi
-
 # Check for Paho MQTT (this is trickier, might need manual check)
 if ! ldconfig -p | grep -q "libpaho-mqttpp3"; then
     MISSING_DEPS+=("libpaho-mqtt-dev libpaho-mqttpp-dev")

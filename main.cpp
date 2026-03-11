@@ -1,7 +1,5 @@
 #include "logger.hpp"
 #include "ConfigManager.hpp"
-#include "serial_port.hpp"
-#include "message_parser.hpp"
 #include "mqtt_client.hpp"
 #include "tread_manager.hpp"
 #include <thread>
@@ -19,42 +17,12 @@ ConfigManager configManager;
 // Atomic flag for graceful shutdown
 std::atomic<bool> shouldStop(false);
 
-// Communication mode
-enum class CommMode {
-    UART,
-    MQTT
-};
-
 // Signal handler for Ctrl+C
 void signalHandler(int signal) {
     if (signal == SIGINT) {
         logger.log("\nShutdown signal received. Stopping threads...");
         shouldStop.store(true);
     }
-}
-
-// Thread: Read from UART and push to queue
-void uartReaderThread(SerialPort& serialPort, ThreadSafeQueue<Json::Value>& messageQueue) {
-    logger.log("UART Reader Thread started");
-    MessageParser parser;
-
-    while (!shouldStop.load()) {
-        std::vector<uint8_t> data = serialPort.readData();
-
-        if (!data.empty()) {
-            parser.addData(data);
-
-            Json::Value message;
-            while (parser.parseNextMessage(message)) {
-                messageQueue.push(message);
-                logger.log("UART Reader: Message pushed to queue");
-            }
-        }
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
-
-    logger.log("UART Reader Thread stopped");
 }
 
 // Thread: Process messages from queue and display status
@@ -164,56 +132,6 @@ Json::Value createStatusCommand() {
     return command;
 }
 
-// Function to send command via UART
-bool sendCommandViaUART(SerialPort& serialPort, const Json::Value& command) {
-    try {
-        Json::StreamWriterBuilder builder;
-        builder["indentation"] = "";
-        std::string payload = Json::writeString(builder, command);
-        payload += "\n";
-
-        std::vector<uint8_t> data(payload.begin(), payload.end());
-
-        logger.log("UART: Sending command: " + payload);
-        return serialPort.writeData(data);
-
-    } catch (const std::exception& e) {
-        logger.log("UART: Failed to send command: " + std::string(e.what()));
-        return false;
-    }
-}
-
-// Main LED control loop for UART
-void ledControlLoopUART(SerialPort& serialPort) {
-    logger.log("\n=== LED Control Mode (UART) ===");
-    logger.log("Enter RGB values to control the LED");
-    logger.log("Press Ctrl+C to exit\n");
-
-    while (!shouldStop.load()) {
-        std::cout << "\n--- Enter new RGB color ---\n";
-
-        int r = getRGBValue("Red");
-        if (shouldStop.load()) break;
-
-        int g = getRGBValue("Green");
-        if (shouldStop.load()) break;
-
-        int b = getRGBValue("Blue");
-        if (shouldStop.load()) break;
-
-        Json::Value ledCmd = createLEDCommand(r, g, b);
-
-        if (sendCommandViaUART(serialPort, ledCmd)) {
-            logger.log("Color command sent successfully!");
-            sendCommandViaUART(serialPort, createStatusCommand());
-        } else {
-            logger.log("Failed to send color command");
-        }
-
-        std::cout << "\n";
-    }
-}
-
 // Main LED control loop for MQTT
 void ledControlLoopMQTT(MQTTClient& mqttClient) {
     logger.log("\n=== LED Control Mode (MQTT) ===");
@@ -247,27 +165,8 @@ void ledControlLoopMQTT(MQTTClient& mqttClient) {
     }
 }
 
-// Get communication mode from user
-CommMode getCommMode() {
-    std::string choice;
-
-    while (true) {
-        std::cout << "\n=== Communication Mode Selection ===\n";
-        std::cout << "1. UART\n";
-        std::cout << "2. MQTT\n";
-        std::cout << "Enter your choice (1 or 2): ";
-
-        std::getline(std::cin, choice);
-
-        if (choice == "1") return CommMode::UART;
-        if (choice == "2") return CommMode::MQTT;
-
-        std::cout << "Invalid choice. Please enter 1 or 2.\n";
-    }
-}
-
 int main() {
-    logger.log("Starting ESP32 LED Control Application...");
+    logger.log("Starting ESP32 LED Control Application in MQTT-only mode...");
 
     std::signal(SIGINT, signalHandler);
 
@@ -279,60 +178,33 @@ int main() {
 
     logger.log("Configuration loaded successfully");
 
-    // Handle potential leftover newline before getline
-    if (std::cin.peek() == '\n') std::cin.ignore();
-
-    CommMode commMode = getCommMode();
-
     ThreadSafeQueue<Json::Value> messageQueue;
     std::thread processorThread(messageProcessorThread, std::ref(messageQueue));
 
-    if (commMode == CommMode::UART) {
-        logger.log("\n=== UART Mode Selected ===");
-        logger.log("Port: " + config.uart.port);
-        logger.log("Baud Rate: " + std::to_string(config.uart.baudRate));
+    logger.log("\n=== MQTT Mode ===");
+    logger.log("Broker: " + config.mqtt.brokerAddress);
+    logger.log("Client ID: " + config.mqtt.clientId);
 
-        SerialPort serialPort;
-        if (!serialPort.open(config.uart.port, config.uart.baudRate)) {
-            logger.log("Failed to open serial port: " + config.uart.port);
-            shouldStop.store(true);
-            processorThread.join();
-            return 1;
-        }
+    MQTTClient mqttClient(config.mqtt, &messageQueue);
 
-        logger.log("Serial port opened successfully!");
-
-        std::thread readerThread(uartReaderThread, std::ref(serialPort), std::ref(messageQueue));
-        ledControlLoopUART(serialPort);
-        readerThread.join();
-
-    } else {
-        logger.log("\n=== MQTT Mode Selected ===");
-        logger.log("Broker: " + config.mqtt.brokerAddress);
-        logger.log("Client ID: " + config.mqtt.clientId);
-
-        MQTTClient mqttClient(config.mqtt, &messageQueue);
-
-        if (!mqttClient.connect()) {
-            logger.log("Failed to connect to MQTT broker");
-            shouldStop.store(true);
-            processorThread.join();
-            return 1;
-        }
-
-        // Use broad status subscription so you receive telemetry/status from ESP32
-        if (!mqttClient.subscribe(config.mqtt.topicStatus)) {
-            logger.log("Failed to subscribe to status topic");
-            mqttClient.disconnect();
-            shouldStop.store(true);
-            processorThread.join();
-            return 1;
-        }
-
-        logger.log("MQTT client ready!");
-        ledControlLoopMQTT(mqttClient);
-        mqttClient.disconnect();
+    if (!mqttClient.connect()) {
+        logger.log("Failed to connect to MQTT broker");
+        shouldStop.store(true);
+        processorThread.join();
+        return 1;
     }
+
+    if (!mqttClient.subscribe(config.mqtt.topicStatus)) {
+        logger.log("Failed to subscribe to status topic");
+        mqttClient.disconnect();
+        shouldStop.store(true);
+        processorThread.join();
+        return 1;
+    }
+
+    logger.log("MQTT client ready!");
+    ledControlLoopMQTT(mqttClient);
+    mqttClient.disconnect();
 
     processorThread.join();
     logger.log("Application shutdown complete");

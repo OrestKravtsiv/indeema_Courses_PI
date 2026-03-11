@@ -6,11 +6,6 @@
 #include <iostream>
 #include <fstream>
 
-struct UARTConfig {
-    std::string port;
-    int baudRate;
-};
-
 struct MQTTConfig {
     std::string brokerAddress;
     std::string clientId;
@@ -21,13 +16,11 @@ struct MQTTConfig {
 };
 
 struct AppConfig {
-    UARTConfig uart;
     MQTTConfig mqtt;
 };
 
 class ConfigManager {
     public:
-    bool parseConfig(const std::string& filePath, UARTConfig& config);
     bool parseFullConfig(const std::string& filePath, AppConfig& config);
         
 };
