@@ -1,5 +1,4 @@
 #include "logger.hpp"
-#include "ConfigManager.hpp"
 #include "mqtt_client.hpp"
 #include "tread_manager.hpp"
 #include <thread>
@@ -12,7 +11,16 @@
 #include <json/json.h>
 
 Logger logger;
-ConfigManager configManager;
+
+// Hardcoded MQTT configuration
+static const MQTTConfig MQTT_CONFIG = {
+    .brokerAddress    = "4f697079e50441b5b35126d2f9a5754f.s1.eu.hivemq.cloud:8883",
+    .clientId         = "RaspberryPi_LED_Controller",
+    .topicCommand     = "esp-lection/cmd",
+    .topicStatus      = "esp-lection/#",
+    .keepAliveInterval = 20,
+    .timeout          = 10000
+};
 
 // Atomic flag for graceful shutdown
 std::atomic<bool> shouldStop(false);
@@ -170,22 +178,14 @@ int main() {
 
     std::signal(SIGINT, signalHandler);
 
-    AppConfig config;
-    if (!configManager.parseFullConfig("config.json", config)) {
-        logger.log("Failed to parse configuration file.");
-        return 1;
-    }
-
-    logger.log("Configuration loaded successfully");
-
     ThreadSafeQueue<Json::Value> messageQueue;
     std::thread processorThread(messageProcessorThread, std::ref(messageQueue));
 
     logger.log("\n=== MQTT Mode ===");
-    logger.log("Broker: " + config.mqtt.brokerAddress);
-    logger.log("Client ID: " + config.mqtt.clientId);
+    logger.log("Broker: " + MQTT_CONFIG.brokerAddress);
+    logger.log("Client ID: " + MQTT_CONFIG.clientId);
 
-    MQTTClient mqttClient(config.mqtt, &messageQueue);
+    MQTTClient mqttClient(MQTT_CONFIG, &messageQueue);
 
     if (!mqttClient.connect()) {
         logger.log("Failed to connect to MQTT broker");
@@ -194,7 +194,7 @@ int main() {
         return 1;
     }
 
-    if (!mqttClient.subscribe(config.mqtt.topicStatus)) {
+    if (!mqttClient.subscribe(MQTT_CONFIG.topicStatus)) {
         logger.log("Failed to subscribe to status topic");
         mqttClient.disconnect();
         shouldStop.store(true);
